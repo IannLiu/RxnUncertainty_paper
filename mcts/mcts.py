@@ -1,5 +1,7 @@
 import math
-from typing import Callable, Dict, List, Set
+import sys
+sys.path.append('/home/ly/Desktop/MLPaper')
+from typing import Callable, Dict, List, Set, Tuple
 from extract_templates import get_changed_atoms
 from rdkit import Chem
 from rdkit.Chem import Draw
@@ -292,12 +294,4 @@ def run_interpert(rxn, cp_dir):
                          'model_unc': model_unc, 'data_unc': data_unc, 'total_unc': total_unc}
     return nodes_dict
 
-
-if __name__ == '__main__':
-    smarts1 = '[C:1]([C:2](=[O:3])[H:7])([H:4])([H:5])[H:6].[C:8]([O:9][C:10]([C:11]([H:15])([H:16])[H:17])=[O:12])([H:13])[H:14]>>[C:1]([C:2]=[O:3])([H:4])([H:5])[H:6].[H:7][C:8]([O:9][C:10]([C:11]([H:15])([H:16])[H:17])=[O:12])([H:13])[H:14]'
-    all_rat = interpret(checkpoint_dir='../unc_models/default/ccsdt/ensemble/fold_0', all_rxns=[smarts1])
-    draw_mcts(all_rat[0])
-
-    for rat in all_rat:
-        print('final rationals: ', rat)
 

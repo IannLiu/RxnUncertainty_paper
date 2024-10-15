@@ -1,3 +1,7 @@
+import re
+from copy import deepcopy
+from rdkit import Chem
+from rdkit.Chem import AllChem
 from util import str_to_mol
 
 VERBOSE = False
@@ -150,4 +154,80 @@ def get_changed_atoms(reactants, products):
             print('  {}'.format(smarts))
     return changed_atoms, changed_atom_tags, err
 
+
+def bond_index(bond):
+    if bond.GetBondType() == Chem.rdchem.BondType.SINGLE:
+        return 1
+    elif bond.GetBondType() == Chem.rdchem.BondType.DOUBLE:
+        return 2
+    elif bond.GetBondType() == Chem.rdchem.BondType.TRIPLE:
+        return 3
+    elif bond.GetBondType() == Chem.rdchem.BondType.AROMATIC:
+        return 4
+    else:
+        return 5
+
+
+def Extract_changed_bonds(smilles: list, map_num_info: bool = False):
+    """
+    The function is to extract the changed bond types for a reactiion
+
+    :param smiles: A list [rsmi, psmi]
+    """
+    rmol = str_to_mol(smilles[0])
+    pmol = str_to_mol(smilles[1])
+    pmol_map_to_idx = {}
+    rmol_map_to_idx = {}
+    changed_bond_types = []
+    broken = []
+    formation = []
+    for atom in pmol.GetAtoms():
+        map_num = atom.GetAtomMapNum()
+        idx = atom.GetIdx()
+        if map_num not in pmol_map_to_idx.keys():
+            pmol_map_to_idx[map_num] = idx
+    for atom in rmol.GetAtoms():
+        map_num = atom.GetAtomMapNum()
+        idx = atom.GetIdx()
+        if map_num not in rmol_map_to_idx.keys():
+            rmol_map_to_idx[map_num] = idx
+    for rbond in rmol.GetBonds():
+        if rbond.GetSmarts() in ['', None]:
+            rbond_smarts = '-'
+        else:
+            rbond_smarts = rbond.GetSmarts()
+        atom1 = rbond.GetBeginAtom()
+        atom1_map_num = atom1.GetAtomMapNum()
+        atom2 = rbond.GetEndAtom()
+        atom2_map_num = atom2.GetAtomMapNum()
+        pbond = pmol.GetBondBetweenAtoms(pmol_map_to_idx[atom1_map_num], pmol_map_to_idx[atom2_map_num])
+        changed_ratoms = sorted([atom1.GetSymbol(), atom2.GetSymbol()])
+        if pbond is None or pbond.GetSmarts() != rbond.GetSmarts():
+            changed_bond_types.append('-' + changed_ratoms[0] + rbond_smarts + changed_ratoms[1])
+            if map_num_info:
+                broken.append([atom1_map_num, atom2_map_num, bond_index(rbond)])
+
+    for pbond in pmol.GetBonds():
+        if pbond.GetSmarts() in ['', None]:
+            pbond_smarts = '-'
+        else:
+            pbond_smarts = pbond.GetSmarts()
+        atom1 = pbond.GetBeginAtom()
+        atom1_map_num = atom1.GetAtomMapNum()
+        atom2 = pbond.GetEndAtom()
+        atom2_map_num = atom2.GetAtomMapNum()
+        rbond = rmol.GetBondBetweenAtoms(rmol_map_to_idx[atom1_map_num], rmol_map_to_idx[atom2_map_num])
+        changed_ratoms = sorted([atom1.GetSymbol(), atom2.GetSymbol()])
+        if rbond is None or rbond.GetSmarts() != pbond.GetSmarts():
+            changed_bond_types.append('+' + changed_ratoms[0] + pbond_smarts + changed_ratoms[1])
+            if map_num_info:
+                # [atom_idx1, atom_idx2, bond_change_type]
+                formation.append([atom1_map_num, atom2_map_num, bond_index(pbond)])
+
+    changed_bond_types = sorted(changed_bond_types)
+
+    if map_num_info:
+        return '.'.join(changed_bond_types), {'broken': broken, 'formation': formation}
+
+    return '.'.join(changed_bond_types)
 
