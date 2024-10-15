@@ -1,4 +1,3 @@
-`trained_models` records trained models for predicting the free energies.  
 `MeAcet_rxn_info.yaml` records the QM calculated free energies.  
 `MeAcet_ml_est.yaml` records the ML model predicted free energies.  
 `pyrenex` is a package for parsing elementary reactions to kinetic models, simulating the ideal rectors, and analyzing reaction network. We used this package for simulating the ideal reactor.
